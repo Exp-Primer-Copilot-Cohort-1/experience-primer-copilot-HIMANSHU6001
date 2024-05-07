@@ -1,16 +1,25 @@
-// create a web server
-// create a web server
-var express = require('express');
-var app = express();
-var bodyParser = require('body-parser');
-var fs = require('fs');
-var comments = require('./comments.json');
-var _ = require('lodash');
+// Create web server
+// Initialize express
+const express = require('express');
+const router = express.Router();
 
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({extended: true}));
-app.use(express.static(__dirname + '/public'));
+// Import commentsController
+const commentsController = require('../controllers/commentsController');
 
-app.get('/comments', function(req, res) {
-  res.json(comments);
-});
+// Create a new comment
+router.post('/comments', commentsController.create);
+
+// Get all comments
+router.get('/comments', commentsController.index);
+
+// Get one comment
+router.get('/comments/:id', commentsController.show);
+
+// Update a comment
+router.put('/comments/:id', commentsController.update);
+
+// Delete a comment
+router.delete('/comments/:id', commentsController.delete);
+
+// Export router
+module.exports = router;
