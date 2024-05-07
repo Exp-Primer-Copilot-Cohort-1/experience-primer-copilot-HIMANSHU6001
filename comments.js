@@ -1,50 +1,54 @@
 // create a web server
-// create a simple form
-// when the form is submitted, check if the comment is spam
-// if it is spam, display an error message
-// if it is not spam, save the comment to a file
-// and display a success message
-// also display a list of all comments
-
-const express = require('express');
-const bodyParser = require('body-parser');
+const http = require('http');
 const fs = require('fs');
-const axios = require('axios');
+const path = require('path');
+const url = require('url');
+const qs = require('querystring');
+const comments = [];
 
-const app = express();
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
-
-app.get('/', (req, res) => {
-    res.send(`
-        <form method="POST" action="/comment">
-            <input type="text" name="comment">
-            <button type="submit">Submit</button>
-        </form>
-    `);
-});
-
-app.post('/comment', async (req, res) => {
-    const comment = req.body.comment;
-    const spam = await isSpam(comment);
-
-    if (spam) {
-        res.send('Error: Comment is spam');
+const server = http.createServer((req, res) => {
+    const { pathname, query } = url.parse(req.url, true);
+    if (pathname === '/index.html') {
+        fs.readFile(path.join(__dirname, 'index.html'), (err, data) => {
+            if (err) {
+                res.writeHead(500, { 'Content-Type': 'text/plain;charset=utf-8' });
+                res.end('服务器错误');
+            } else {
+                res.writeHead(200, { 'Content-Type': 'text/html;charset=utf-8' });
+                res.end(data);
+            }
+        });
+    } else if (pathname === '/comments') {
+        const method = req.method;
+        if (method === 'GET') {
+            res.writeHead(200, { 'Content-Type': 'application/json;charset=utf-8' });
+            res.end(JSON.stringify(comments));
+        } else if (method === 'POST') {
+            let data = '';
+            req.on('data', chunk => {
+                data += chunk;
+            });
+            req.on('end', () => {
+                const comment = qs.parse(data);
+                comment.dateTime = new Date();
+                comments.push(comment);
+                res.writeHead(201, { 'Content-Type': 'text/plain;charset=utf-8' });
+                res.end('发表成功');
+            });
+        }
     } else {
-        const comments = JSON.parse(fs.readFileSync('comments.json', 'utf8'));
-        comments.push(comment);
-        fs.writeFileSync('comments.json', JSON.stringify(comments));
-        res.send('Success: Comment saved');
+        fs.readFile(path.join(__dirname, pathname), (err, data) => {
+            if (err) {
+                res.writeHead(404, { 'Content-Type': 'text/plain;charset=utf-8' });
+                res.end('文件未找到');
+            } else {
+                res.writeHead(200, { 'Content-Type': 'text/plain;charset=utf-8' });
+                res.end(data);
+            }
+        });
     }
 });
 
-app.get('/comments', (req, res) => {
-    const comments = JSON.parse(fs.readFileSync('comments.json', 'utf8'));
-    res.send(comments);
-});
-
-app.listen(3000, () => {
-    console.log('Server is running on port 3000');
-});
-
-
+server.listen(3000, ' localhost', () => {
+    console.log(' http://localhost:3000 访问');
+} );
